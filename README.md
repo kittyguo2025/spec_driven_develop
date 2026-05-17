@@ -43,8 +43,9 @@ Phase 2  Intent Refinement         Ask targeted questions grounded in analysis,
     |
 Phase 3  Task Decomposition        Break work into phases, tasks, parallel lanes —
     |                              each task annotated with S.U.P.E.R design drivers
+    |                              + create GitHub Issues, Milestones & Project board
     |
-Phase 4  Progress Tracking         Generate MASTER.md + per-phase detail files
+Phase 4  Progress Tracking         Generate MASTER.md as GitHub index or local tracker
     |                              for cross-conversation continuity
     |
 Phase 5  Sub-SKILL Generation      Create a project-level SKILL with inlined
@@ -58,6 +59,20 @@ Phase 7  Archive                   Preserve all artifacts for traceability
 ```
 
 A master progress file (`docs/progress/MASTER.md`) serves as the agent's memory anchor across conversations. No matter how many sessions a task spans, the agent always knows where things stand.
+
+### GitHub-Native Task Tracking (New in v1.9)
+
+When a GitHub repository is detected, the workflow automatically creates **GitHub Issues** for every task, organized with **Milestones** (one per phase), **Labels** (priority, size, lane), and optionally a **GitHub Projects** board. Each task executor works in an isolated **worktree**, creates a **PR** linked to its Issue (`closes #N`), and the Issue auto-closes on merge.
+
+Three modes are auto-detected based on environment:
+
+| Mode | What You Get |
+|:-----|:-------------|
+| **GITHUB_FULL** | Issues + Milestones + Labels + Project board + worktree + PR |
+| **GITHUB_STANDARD** | Issues + Milestones + Labels + worktree + PR (no board) |
+| **LOCAL_ONLY** | Original Markdown-based workflow (no GitHub dependency) |
+
+The workflow gracefully degrades — if `gh` CLI is unavailable or the repo isn't on GitHub, it falls back to local-only mode automatically.
 
 ## Deep Discuss — Structured Deep Discussion
 
@@ -230,11 +245,11 @@ Simply describe your task to the agent. Each skill triggers on different keyword
 
 ### Cross-Conversation Continuity
 
-When working on a long-running task across multiple conversations, the agent reads `docs/progress/MASTER.md` at the start of each new session to restore context and continue from where it left off.
+When working on a long-running task across multiple conversations, the agent reads `docs/progress/MASTER.md` at the start of each new session to restore context and continue from where it left off. In GitHub modes, it also queries GitHub for the latest Issue states — PRs may have been merged since the last session.
 
 ### Native Task Tracking
 
-When the agent starts a work session, it automatically loads the current phase's pending tasks into the platform's native task tracking tool (e.g. TodoWrite in Claude Code). You get real-time visual progress in your IDE sidebar — no need to open Markdown files manually. MASTER.md remains the persistent source of truth across conversations; the native tool provides in-session visibility.
+When the agent starts a work session, it automatically loads the current phase's pending tasks into the platform's native task tracking tool (e.g. TodoWrite in Claude Code). You get real-time visual progress in your IDE sidebar — no need to open Markdown files manually. In GitHub modes, progress is also visible on the GitHub Milestone and Project board. MASTER.md remains the persistent local index across conversations.
 
 ### Progress Export
 
@@ -265,6 +280,7 @@ spec_driven_develop/
 │   │   │       ├── super-philosophy.md       # S.U.P.E.R architecture principles
 │   │   │       ├── parallel-protocol.md      # Parallel execution protocol
 │   │   │       ├── behavioral-rules.md       # Non-negotiable workflow rules
+│   │   │       ├── github-integration.md     # GitHub Issues/Projects/PR protocol
 │   │   │       └── templates/                # Document templates (one per concern)
 │   │   │           ├── analysis.md           # Phase 1: with S.U.P.E.R health assessment
 │   │   │           ├── plan.md               # Phase 3: with S.U.P.E.R design constraints

@@ -8,7 +8,7 @@ description: >-
   "迁移", "重构", "大规模", "规范驱动". Performs full project analysis, task decomposition,
   documentation generation, progress tracking setup, and task-specific sub-SKILL creation
   before any development begins.
-version: 1.7.0
+version: 1.8.0
 ---
 
 # Spec-Driven Develop
@@ -24,17 +24,31 @@ You are executing the **Spec-Driven Development** workflow — a standardized pr
 | Progress output    | `docs/progress/`             | Phase 4 tracking documents (incl. MASTER.md) |
 | Archive output     | `docs/archives/<project>/`   | Phase 7 archived artifacts                 |
 | Sub-SKILL install  | Project level (auto-detect)  | Platform-specific: `.cursor/skills/`, `.claude/commands/`, or project-local |
+| Task tracking mode | Auto-detect                  | `GITHUB_FULL`, `GITHUB_STANDARD`, or `LOCAL_ONLY` (see below) |
 
-Templates for all generated documents are in `references/templates/`. Behavioral rules are in `references/behavioral-rules.md`. The parallel execution protocol is in `references/parallel-protocol.md`.
+Templates for all generated documents are in `references/templates/`. Behavioral rules are in `references/behavioral-rules.md`. The parallel execution protocol is in `references/parallel-protocol.md`. The GitHub integration protocol is in `references/github-integration.md`.
+
+### Task Tracking Modes
+
+The workflow supports three task tracking modes, auto-detected via a pre-flight check in Phase 1:
+
+| Mode | Requirements | Capabilities |
+|:-----|:------------|:-------------|
+| **GITHUB_FULL** (default) | `gh` CLI + auth + `project` scope | Issues + Milestones + Labels + Project board + worktree + PR |
+| **GITHUB_STANDARD** (auto-fallback) | `gh` CLI + auth + `repo` scope | Issues + Milestones + Labels + worktree + PR (no board) |
+| **LOCAL_ONLY** (fallback) | None | Original local-file workflow |
+
+See `references/github-integration.md` for the full protocol, `gh` command reference, and Issue body template.
 
 ## Before You Begin: Cross-Conversation Continuity Check
 
 **CRITICAL**: Before starting any phase, check if `docs/progress/MASTER.md` already exists in the project.
 
-- If it **exists**: Read it immediately. You are resuming an in-progress task. Identify which phase you are in, what has been completed, and continue from the exact point where the previous conversation left off. Do NOT restart from Phase 0.
+- If it **exists**: Read it immediately. You are resuming an in-progress task. Identify the **tracking mode** (`GITHUB_FULL`, `GITHUB_STANDARD`, or `LOCAL_ONLY`) from the `Mode` field, which phase you are in, what has been completed, and continue from the exact point where the previous conversation left off. Do NOT restart from Phase 0.
+  - **If mode is GITHUB_FULL or GITHUB_STANDARD**: Also query GitHub for the latest task status, since Issues may have been closed (via merged PRs) since the last session. Use the commands in `references/github-integration.md` § "Reading Progress from GitHub". Update MASTER.md if the GitHub state is ahead of the local index.
 - If it **does not exist**: This is a fresh start. Proceed to Phase 0.
 
-After loading your current state from MASTER.md, populate the platform's native task tracking tool (e.g. TodoWrite) with the active phase's pending tasks. For each task, set content to the task description, status to "in-progress" for the currently active task and "todo" for the rest, and priority mapped as P0=high, P1=medium, P2=low. This gives the user real-time visual progress in their IDE. If no native task tool is available, skip this step — MASTER.md alone is sufficient.
+After loading your current state, populate the platform's native task tracking tool (e.g. TodoWrite) with the active phase's pending tasks. For each task, set content to the task description, status to "in-progress" for the currently active task and "todo" for the rest, and priority mapped as P0=high, P1=medium, P2=low. This gives the user real-time visual progress in their IDE. If no native task tool is available, skip this step — MASTER.md alone is sufficient.
 
 ---
 
@@ -77,7 +91,9 @@ After loading your current state from MASTER.md, populate the platform's native 
    - `module-inventory.md` — Every module with: responsibility, dependencies, size, complexity rating, **S.U.P.E.R compliance score per module**
    - `risk-assessment.md` — Technical risks, compatibility risks, complexity hotspots, **S.U.P.E.R Architecture Health Summary with violation hotspots**
 
-**Output**: Complete `docs/analysis/` directory with three documents. The S.U.P.E.R assessment serves as the architectural baseline for all subsequent phases.
+3. **GitHub Pre-flight Check**: Run the pre-flight detection from `references/github-integration.md` § "Pre-flight Check" to determine the task tracking mode (`GITHUB_FULL`, `GITHUB_STANDARD`, or `LOCAL_ONLY`). Report the detected mode to the user. If the mode is not what they expect, explain what's missing and how to upgrade (e.g., `gh auth refresh -s project`).
+
+**Output**: Complete `docs/analysis/` directory with three documents. The S.U.P.E.R assessment serves as the architectural baseline for all subsequent phases. The detected GitHub integration mode is communicated to the user.
 
 ---
 
@@ -132,20 +148,52 @@ After loading your current state from MASTER.md, populate the platform's native 
    - `dependency-graph.md` — Mermaid diagram showing task/phase dependencies and parallel lanes
    - `milestones.md` — Milestone definitions with target criteria
 
-**Output**: Complete `docs/plan/` directory with three documents. Every task is annotated with its S.U.P.E.R design drivers.
+4. **GitHub Resource Synchronization** (skip if `LOCAL_ONLY` mode):
+
+   After writing the local plan documents, create the corresponding GitHub resources. Follow the commands and templates in `references/github-integration.md`. Execute in this order:
+
+   a. **Create Labels** — priority, size, phase, lane, and `spec-driven` labels (idempotent with `--force`)
+   b. **Create Milestones** — one per Phase, via `gh api` REST call
+   c. **Create Issues** — one per task, using the Issue body template from `references/github-integration.md`. Assign labels and milestone. Add a 1-second delay between creations to avoid rate limits.
+   d. **[GITHUB_FULL only] Create Project board** — create the Project, link it to the repo, create custom fields (Priority, Size, Phase), and add all Issues to the board. If custom field value assignment fails, log a warning and continue — the Labels already carry the same information.
+
+   After creation, record all GitHub resource URLs (Project URL, Milestone URLs, Issue number mapping) — these are needed for MASTER.md in Phase 4.
+
+**Output**: Complete `docs/plan/` directory with three documents. Every task is annotated with its S.U.P.E.R design drivers. In GitHub modes, all tasks also exist as GitHub Issues with Labels and Milestones.
 
 ---
 
 ## Phase 4: Progress Tracking Documentation
 
-**Goal**: Create a document-driven progress tracking system that survives across conversations.
+**Goal**: Create a progress tracking system that survives across conversations. The format depends on the detected tracking mode.
 
 **Actions**:
 
 Use the templates in `references/templates/progress.md` for all progress documents.
 
+### In GITHUB_FULL or GITHUB_STANDARD mode:
+
+1. Create the **master index file** `docs/progress/MASTER.md` as a **lightweight GitHub index** with:
+   - Task name and description (from Phase 2)
+   - **Tracking mode** (`GITHUB_FULL` or `GITHUB_STANDARD`)
+   - **Repository** identifier (`owner/repo`)
+   - **GitHub Project URL** (GITHUB_FULL only)
+   - Links to each analysis and plan document
+   - **Milestone table**: Phase name → Milestone URL → open/closed counts
+   - **Issue mapping table**: Task ID → Issue number → status
+   - A "Quick Status Commands" section with ready-to-run `gh` commands for querying live progress
+   - A "Current Status" section indicating which phase/task is active
+   - A "Next Steps" section for the agent to quickly orient itself
+
+   The MASTER.md in GitHub mode does NOT duplicate task details — those live in the GitHub Issues. It serves as a local index and entry point for cross-conversation continuity.
+
+2. **Per-phase detail files are optional** in GitHub mode. The phase's task list lives in GitHub Issues filtered by milestone. If you create them, keep them lightweight — just a list of Issue references, not full task descriptions.
+
+### In LOCAL_ONLY mode:
+
 1. Create the **master control file** `docs/progress/MASTER.md` with:
    - Task name and description (from Phase 2)
+   - **Tracking mode**: `LOCAL_ONLY`
    - Link to each analysis document
    - Link to each plan document
    - A summary table of all phases with completion percentage
@@ -158,12 +206,14 @@ Use the templates in `references/templates/progress.md` for all progress documen
    - Include acceptance criteria inline for each task
    - Include a "Notes" section for recording decisions, blockers, and context
 
-3. The MASTER.md format must follow this convention:
-   - Phases use the format: `- [ ] Phase N: <name> (0/X tasks) [details](./phase-N-<name>.md)`
-   - When a phase is fully done: `- [x] Phase N: <name> (X/X tasks) [details](./phase-N-<name>.md)`
+### Common to all modes:
+
+3. The MASTER.md format must follow these conventions:
+   - Phases use the format: `- [ ] Phase N: <name> (0/X tasks)` with a link to either the phase file (LOCAL_ONLY) or the milestone URL (GitHub modes)
+   - When a phase is fully done: `- [x] Phase N: <name> (X/X tasks)`
    - The "Current Status" section is updated by the agent at the start and end of each work session
 
-**Output**: Complete `docs/progress/` directory with MASTER.md and per-phase detail files.
+**Output**: Complete `docs/progress/` directory with MASTER.md (and per-phase detail files in LOCAL_ONLY mode).
 
 ---
 
@@ -192,10 +242,12 @@ Use the templates in `references/templates/progress.md` for all progress documen
 
 4. The generated sub-SKILL should instruct the agent to:
    - Always read `docs/progress/MASTER.md` at the start of every conversation
+   - **Check the tracking mode** and follow the appropriate workflow:
+     - **GitHub modes**: Read the next pending Issue from GitHub, execute in a worktree, create a PR with `closes #N`, and comment on the Issue. Progress is tracked via Issue state (open/closed).
+     - **LOCAL_ONLY mode**: Read the next pending task from the phase file, execute it, update checkboxes.
    - **Run the S.U.P.E.R Code Review Checklist** after completing each task, before marking it done
-   - Update the checkbox status in the relevant phase file after completing each task
-   - Update the completion count and "Current Status" in MASTER.md
-   - When all checkboxes are checked, trigger Phase 7 (Archive)
+   - Update the "Current Status" section in MASTER.md at the start and end of each session
+   - When all tasks are complete (all Issues closed or all checkboxes checked), trigger Phase 7 (Archive)
 
 **Output**: A project-level task-specific SKILL.
 
@@ -211,6 +263,7 @@ Use the templates in `references/templates/progress.md` for all progress documen
    - Task definition (from Phase 2)
    - Key findings from analysis (high-level, from Phase 1)
    - Phased plan overview with task counts (from Phase 3)
+   - **Tracking mode** and what it means for the execution workflow
    - Progress tracking system description (from Phase 4)
    - Sub-SKILL name and installation location (from Phase 5)
 
@@ -222,8 +275,9 @@ Use the templates in `references/templates/progress.md` for all progress documen
    - `docs/plan/dependency-graph.md`
    - `docs/plan/milestones.md`
    - `docs/progress/MASTER.md`
-   - `docs/progress/phase-N-*.md` (one per phase)
+   - `docs/progress/phase-N-*.md` (LOCAL_ONLY mode, one per phase)
    - The generated sub-SKILL
+   - **[GitHub modes]** GitHub Project URL, Milestone URLs, list of created Issue numbers
 
 3. Ask the user: "All preparation is complete. Ready to begin Phase 1 development?"
 
@@ -233,7 +287,7 @@ Use the templates in `references/templates/progress.md` for all progress documen
 
 ## Phase 7: Archive
 
-**Trigger**: This phase activates when ALL checkboxes in `docs/progress/MASTER.md` are marked complete (`[x]`).
+**Trigger**: This phase activates when ALL tasks are complete — all Issues closed (GitHub modes) or all checkboxes marked `[x]` (LOCAL_ONLY mode).
 
 **Goal**: Archive all workflow artifacts for future reference and traceability, then clean up the working directories.
 
@@ -250,16 +304,18 @@ Use the templates in `references/templates/progress.md` for all progress documen
    - Move the project-level sub-SKILL file to `docs/archives/<project-name>/skill/SKILL.md`
    - Move any other temporary files generated during development into the archive
 
-4. Create or update the archive index file `docs/archives/README.md`:
+4. **[GitHub modes]** Close the GitHub Milestone for each phase (if not already closed). Optionally close the GitHub Project board. These resources remain accessible on GitHub as a permanent record.
+
+5. Create or update the archive index file `docs/archives/README.md`:
    - If the file does not exist, create it with a header and the first project entry
    - If it already exists, append a new entry for this project
-   - Each entry should include: project name, one-line description, date range (started — completed), and a link to the archived MASTER.md
+   - Each entry should include: project name, one-line description, date range (started — completed), link to the archived MASTER.md, and **[GitHub modes]** the GitHub Project URL
 
-5. After archiving, remove the now-empty `docs/analysis/`, `docs/plan/`, and `docs/progress/` directories from the project root's `docs/` folder, and remove the sub-SKILL's original directory if it is now empty. Only `docs/archives/` should remain under `docs/`.
+6. After archiving, remove the now-empty `docs/analysis/`, `docs/plan/`, and `docs/progress/` directories from the project root's `docs/` folder, and remove the sub-SKILL's original directory if it is now empty. Only `docs/archives/` should remain under `docs/`.
 
-6. Suggest to the user that they might want to commit the archive to version control.
+7. Suggest to the user that they might want to commit the archive to version control.
 
-**Output**: All artifacts preserved under `docs/archives/<project-name>/`, with an updated index at `docs/archives/README.md`.
+**Output**: All artifacts preserved under `docs/archives/<project-name>/`, with an updated index at `docs/archives/README.md`. In GitHub modes, Milestones and Issues remain as a permanent record on GitHub.
 
 ---
 

@@ -11,12 +11,12 @@ Templates for Phase 7 (Archive). Output to `docs/archives/`.
 
 This directory contains archived artifacts from completed Spec-Driven Develop workflows. Each subdirectory represents one development project, preserving its full analysis, plan, progress history, and task-specific skill for future reference.
 
-| Project | Description | Period | Progress |
-|:--------|:------------|:-------|:---------|
-| [<project-name>](./<project-name>/progress/MASTER.md) | One-line description | YYYY-MM-DD — YYYY-MM-DD | Complete |
+| Project | Description | Period | Mode | Progress |
+|:--------|:------------|:-------|:-----|:---------|
+| [<project-name>](./<project-name>/progress/MASTER.md) | One-line description | YYYY-MM-DD — YYYY-MM-DD | GITHUB_FULL | Complete |
 ```
 
-When updating this file, append new rows to the table. Do not remove existing entries.
+When updating this file, append new rows to the table. Do not remove existing entries. In GitHub modes, include the GitHub Project URL in the Description field for easy reference.
 
 ---
 

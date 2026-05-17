@@ -18,7 +18,10 @@ The generated sub-SKILL must include these sections **in this order**:
 
 ### 1. Cross-Conversation Continuity Protocol
 
-Read `docs/progress/MASTER.md` first, always. Identify active phase/task and resume from where the last session left off.
+Read `docs/progress/MASTER.md` first, always. Identify the **tracking mode** (`GITHUB_FULL`, `GITHUB_STANDARD`, or `LOCAL_ONLY`) and the active phase/task, then resume from where the last session left off.
+
+- **In GitHub modes**: After reading MASTER.md, query GitHub for the latest task status (Issues may have been closed via merged PRs since the last session). Use `gh issue list -R {repo} --label "spec-driven" --state all` to refresh progress. Update MASTER.md if GitHub state is ahead.
+- **In LOCAL_ONLY mode**: MASTER.md and phase files are the sole source of truth.
 
 ### 2. S.U.P.E.R Architecture Principles (MUST be inlined)
 
@@ -104,7 +107,15 @@ Architecture context derived from `docs/analysis/` and the S.U.P.E.R health asse
 
 ### 6. Progress Update Instructions
 
-How to update checkboxes and MASTER.md counts after completing each task. Remind the agent:
+How to update progress depends on the tracking mode:
+
+**In GitHub modes (`GITHUB_FULL` / `GITHUB_STANDARD`)**:
+- Each task is a GitHub Issue. Execution follows: read Issue → worktree → implement → PR with `closes #N` → comment on Issue.
+- Progress is tracked via Issue state (open/closed). When the PR is merged, the Issue is auto-closed.
+- Update the "Current Status" and "Issue Mapping" sections in MASTER.md after each task.
+- Run the S.U.P.E.R Code Review Checklist before creating the PR.
+
+**In LOCAL_ONLY mode**:
 - Update checkbox in phase file
 - Update completion count in MASTER.md
 - Update "Current Status" section
@@ -114,10 +125,12 @@ How to update checkboxes and MASTER.md counts after completing each task. Remind
 
 Reference `references/parallel-protocol.md` for the full protocol. Summarize key points:
 - Check `task-breakdown.md` for parallel lane assignments
-- Launch one `task-executor` per lane simultaneously
+- Launch one `task-executor` per lane simultaneously, each in an isolated worktree
 - Each executor follows S.U.P.E.R principles independently
-- Consolidate results and run full test suite after merge
+- **In GitHub modes**: Each executor creates its own branch and PR linked to its Issue
+- Consolidate results: merge PRs sequentially, run full test suite after merge
+- After consolidation, reconcile MASTER.md with GitHub Issue states
 
 ### 8. Archive Trigger
 
-When all tasks are done, initiate Phase 7 (Archive). Move all artifacts to `docs/archives/<project>/`.
+When all tasks are done (all Issues closed in GitHub modes, or all checkboxes checked in LOCAL_ONLY mode), initiate Phase 7 (Archive). Move local artifacts to `docs/archives/<project>/`. In GitHub modes, Milestones and Issues remain as a permanent record on GitHub.

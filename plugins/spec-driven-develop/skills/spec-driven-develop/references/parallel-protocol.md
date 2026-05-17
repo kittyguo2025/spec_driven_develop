@@ -19,17 +19,22 @@ For each parallel lane in the current phase:
 
 1. Prepare the input for each `task-executor` agent:
    - Task ID and description from the plan
+   - **Tracking mode** (`GITHUB_FULL`, `GITHUB_STANDARD`, or `LOCAL_ONLY`)
+   - **GitHub Issue number** (GitHub modes) or inline task description (LOCAL_ONLY)
    - Acceptance criteria
    - Relevant source file paths (from `docs/analysis/module-inventory.md`)
    - Coding standards from the sub-SKILL
    - Summary of completed prerequisite tasks and their outputs
 
-2. Launch all lane agents **in a single message** (this is how platforms achieve true parallelism). Use worktree isolation if available to prevent file conflicts between agents.
+2. Launch all lane agents **in a single message** (this is how platforms achieve true parallelism). Each agent works in an isolated worktree to prevent file conflicts.
+   - **In GitHub modes**: Each agent creates its own branch (`task/{issue_number}-{slug}`) and PR linked to its Issue
+   - **In LOCAL_ONLY mode**: Use worktree isolation if available; otherwise work sequentially
 
 3. When all agents return, consolidate their results:
    - Verify each agent reported DONE (not BLOCKED)
    - If any agent is BLOCKED, resolve the blocker and re-launch only that agent
-   - If agents worked in worktrees, merge their changes sequentially, resolving any conflicts
+   - **In GitHub modes**: Review and merge PRs sequentially, resolving any conflicts. Each merged PR auto-closes its linked Issue.
+   - **In LOCAL_ONLY mode**: If agents worked in worktrees, merge their changes sequentially, resolving any conflicts
    - Run the project's full test suite to verify combined changes are coherent
 
 ---
@@ -37,6 +42,14 @@ For each parallel lane in the current phase:
 ## Progress Synchronization
 
 After consolidating parallel results:
+
+**In GitHub modes**:
+- Verify all PRs are merged and linked Issues are closed
+- Query GitHub Milestones for updated open/closed counts
+- Update MASTER.md's "Issue Mapping" and "Milestones" tables with current states
+- Update the platform's native task tool to reflect all completed tasks
+
+**In LOCAL_ONLY mode**:
 - Verify that each agent's progress file updates are consistent
 - If agents wrote to the same progress file, reconcile the updates (agents may have stale counts)
 - Update MASTER.md with the final accurate completion counts
