@@ -1,8 +1,33 @@
 {
   "name": "spec-driven-develop",
-  "description": "Two complementary AI agent skills: (1) Spec-Driven Develop — automates full development workflow for large-scale complex tasks: project analysis, task decomposition, project governance, progress tracking, and execution; (2) Deep Discuss — structured deep discussion for problem analysis, brainstorming, and solution design.",
+  "displayName": "Spec-Driven Develop",
   "version": "1.11.1",
+  "description": "Two complementary AI agent skills: (1) Spec-Driven Develop — automates full development workflow for large-scale complex tasks: project analysis, task decomposition, project governance, progress tracking, and execution; (2) Deep Discuss — structured deep discussion for problem analysis, brainstorming, and solution design.",
   "author": {
-    "name": "zhu1090093659"
-  }
+    "name": "zhu1090093659",
+    "url": "https://github.com/zhu1090093659"
+  },
+  "homepage": "https://github.com/zhu1090093659/spec_driven_develop",
+  "repository": "https://github.com/zhu1090093659/spec_driven_develop",
+  "license": "MIT",
+  "keywords": [
+    "spec-driven",
+    "workflow",
+    "planning",
+    "task-decomposition",
+    "project-analysis",
+    "deep-discuss",
+    "brainstorming",
+    "problem-analysis"
+  ],
+  "skills": "./skills/",
+  "commands": [
+    "./commands/spec-dev.md",
+    "./commands/dp.md"
+  ],
+  "agents": [
+    "./agents/project-analyzer.md",
+    "./agents/task-architect.md",
+    "./agents/task-executor.md"
+  ]
 }
