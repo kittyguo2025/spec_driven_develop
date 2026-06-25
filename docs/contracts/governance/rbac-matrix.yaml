@@ -1,0 +1,177 @@
+# RBAC 权限矩阵 — 城建建筑档案管理系统
+# Version: 1.0.0 | Date: 2026-06-24
+# 数据隔离: 除 group_admin 外，所有操作限定 branch_org_id
+
+version: "1.0"
+
+roles:
+  group_admin:
+    label: 集团管理员
+    scope: group
+    description: 全集团配置与跨分公司只读统计
+
+  branch_admin:
+    label: 分公司管理员
+    scope: branch_org
+    description: 本分公司用户与档案全流程
+
+  business_user:
+    label: 普通业务人员
+    scope: branch_org
+    description: 本分公司著录、上传、检索、发起申请
+
+  branch_leader:
+    label: 公司领导
+    scope: branch_org
+    description: 本分公司审批与高层只读统计
+
+resources:
+  - id: org_group
+    label: 集团组织
+  - id: org_branch
+    label: 分公司
+  - id: fonds
+    label: 全宗
+  - id: classification
+    label: 分类表
+  - id: user
+    label: 用户
+  - id: role_assignment
+    label: 角色分配
+  - id: project
+    label: 建设项目
+  - id: building
+    label: 单体建筑
+  - id: archive_volume
+    label: 案卷
+  - id: archive_item
+    label: 文件/件
+  - id: digital_asset
+    label: 数字资产
+  - id: electronic_package
+    label: 电子竣工包
+  - id: integrity_check
+    label: 四性检测报告
+  - id: borrow_request
+    label: 借阅申请
+  - id: appraisal
+    label: 鉴定（开放/密级/销毁）
+  - id: audit_log
+    label: 审计日志
+  - id: report
+    label: 统计报表
+  - id: system_config
+    label: 系统参数
+
+actions:
+  - create
+  - read
+  - update
+  - delete          # 仅逻辑删除；已归档禁止
+  - list
+  - export
+  - approve
+  - execute_destroy # 销毁执行（双角色）
+
+# 权限矩阵: allow | deny | own_branch | own_group | read_only
+permissions:
+  group_admin:
+    org_group: [create, read, update, list]
+    org_branch: [create, read, update, list]
+    fonds: [create, read, update, list]
+    classification: [create, read, update, list]
+    user: [create, read, update, list]
+    role_assignment: [create, read, update, list]
+    project: [read, list]
+    building: [read, list]
+    archive_volume: [read, list]
+    archive_item: [read, list]
+    digital_asset: [read, list]
+    electronic_package: [read, list]
+    integrity_check: [read, list]
+    borrow_request: [read, list]
+    appraisal: [read, list]
+    audit_log: [read, list]
+    report: [read, list, export]
+    system_config: [create, read, update, list]
+
+  branch_admin:
+    org_group: [read]
+    org_branch: [read, update]           # 仅本分公司
+    fonds: [create, read, update, list]
+    classification: [read, list]
+    user: [create, read, update, list]   # 本分公司用户
+    role_assignment: [create, read, update, list]
+    project: [create, read, update, list, export]
+    building: [create, read, update, list, export]
+    archive_volume: [create, read, update, list, export]
+    archive_item: [create, read, update, list, export]
+    digital_asset: [create, read, update, list, export]
+    electronic_package: [create, read, list, export]
+    integrity_check: [read, list, export]
+    borrow_request: [create, read, update, list, export]
+    appraisal: [create, read, update, list]
+    audit_log: [read, list, export]
+    report: [read, list, export]
+    system_config: [read]
+
+  business_user:
+    org_branch: [read]
+    fonds: [read, list]
+    classification: [read, list]
+    project: [create, read, update, list]
+    building: [create, read, update, list]
+    archive_volume: [create, read, update, list]
+    archive_item: [create, read, update, list]
+    digital_asset: [create, read, list]
+    electronic_package: [create, read, list]
+    integrity_check: [read, list]
+    borrow_request: [create, read, list]
+    appraisal: [read, list]
+    audit_log: []
+    report: [read, list]
+    user: [read]                         # 仅自己
+
+  branch_leader:
+    org_branch: [read]
+    fonds: [read, list]
+    classification: [read, list]
+    project: [read, list]
+    building: [read, list]
+    archive_volume: [read, list]
+    archive_item: [read, list]
+    digital_asset: [read, list]
+    electronic_package: [read, list]
+    integrity_check: [read, list]
+    borrow_request: [read, list, approve]
+    appraisal: [read, list, approve]
+    audit_log: [read, list]
+    report: [read, list, export]
+    user: [read]
+
+# 销毁须 branch_leader approve + branch_admin execute_destroy
+special_rules:
+  destruction:
+    requires:
+      - role: branch_leader
+        action: approve
+      - role: branch_admin
+        action: execute_destroy
+    group_admin_required: false
+    notes: 用户已确认无需集团管理员终审
+
+  archived_mutation:
+    deny_update:
+      - archive_volume
+      - archive_item
+    when_status: [archived, frozen, destroyed]
+    except_roles: []                     # 无例外
+
+  audit_log:
+    allow: [insert]
+    deny: [update, delete]
+    all_roles: true
+
+  tenant_isolation:
+    enforce_branch_org_id: true
+    exempt_roles: [group_admin]

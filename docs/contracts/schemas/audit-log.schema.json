@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.com/archive/audit-log.schema.json",
+  "title": "AuditLog",
+  "description": "不可变审计日志记录。仅允许 INSERT，禁止 UPDATE/DELETE（DA/T 合规 + ai-agent-boundaries HD-02）",
+  "type": "object",
+  "required": [
+    "id",
+    "timestamp",
+    "actor_user_id",
+    "actor_role",
+    "branch_org_id",
+    "action",
+    "resource_type",
+    "resource_id",
+    "result"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "审计记录唯一标识"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "操作发生时间（UTC ISO-8601）"
+    },
+    "actor_user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "操作用户 ID"
+    },
+    "actor_username": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "操作用户名快照"
+    },
+    "actor_role": {
+      "type": "string",
+      "enum": ["group_admin", "branch_admin", "business_user", "branch_leader"],
+      "description": "操作时角色"
+    },
+    "branch_org_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "分公司 ID；集团级操作可为 null"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "list",
+        "export",
+        "approve",
+        "reject",
+        "execute_destroy",
+        "login",
+        "logout",
+        "upload",
+        "integrity_check",
+        "archive_filing",
+        "borrow",
+        "return"
+      ],
+      "description": "操作类型"
+    },
+    "resource_type": {
+      "type": "string",
+      "enum": [
+        "org_group",
+        "org_branch",
+        "fonds",
+        "classification",
+        "user",
+        "role_assignment",
+        "project",
+        "building",
+        "archive_volume",
+        "archive_item",
+        "digital_asset",
+        "electronic_package",
+        "integrity_check",
+        "borrow_request",
+        "appraisal",
+        "audit_log",
+        "report",
+        "system_config",
+        "session"
+      ],
+      "description": "资源类型，对齐 rbac-matrix resources"
+    },
+    "resource_id": {
+      "type": ["string", "null"],
+      "description": "资源 ID；列表/登录类可为 null"
+    },
+    "resource_label": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "资源可读标签快照（如案卷题名）"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["success", "failure", "denied"],
+      "description": "操作结果"
+    },
+    "failure_reason": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "失败或拒绝原因"
+    },
+    "client_ip": {
+      "type": "string",
+      "maxLength": 45,
+      "description": "客户端 IP"
+    },
+    "user_agent": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "客户端 User-Agent"
+    },
+    "request_id": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "请求追踪 ID"
+    },
+    "before_snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "变更前关键字段快照（不含大二进制）"
+    },
+    "after_snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "变更后关键字段快照"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "扩展元数据"
+    }
+  },
+  "additionalProperties": false
+}

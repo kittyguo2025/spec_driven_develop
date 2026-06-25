@@ -1,0 +1,15 @@
+{
+  "name": "urban-construction-archive-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "城建建筑档案管理系统 — 契约校验工具链",
+  "scripts": {
+    "validate-schemas": "node scripts/validate-schemas.js",
+    "lint:openapi": "echo 'OpenAPI lint: add @stoplight/spectral-cli when openapi.yaml exists'"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "glob": "^11.0.0"
+  }
+}

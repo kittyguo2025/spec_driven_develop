@@ -1,0 +1,82 @@
+# Human-in-the-Loop — 人工确认门禁
+# AI 可生成草案，以下操作必须人工确认后方可合并/部署
+
+version: "1.0"
+project: urban-construction-archive
+
+operations:
+  - id: HITL-01
+    name: retention_policy_change
+    description: 保管期限规则变更
+    approvers: [group_admin, branch_admin]
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-02
+    name: destruction_execution
+    description: 销毁鉴定结论与执行
+    approvers: [branch_leader, branch_admin]
+    workflow: destruction_appraisal
+    ai_may_draft: true
+    auto_merge: false
+    notes: 须分公司领导+分公司管理员双人确认；无需集团管理员终审；建议 30 天冷却期
+
+  - id: HITL-03
+    name: bulk_import_migration
+    description: 批量导入或数据迁移脚本
+    approvers: [branch_admin, dba]
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-04
+    name: rbac_matrix_change
+    description: RBAC 权限矩阵变更
+    approvers: [group_admin]
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-05
+    name: classification_table_upgrade
+    description: 分类号表版本升级
+    approvers: [group_admin]
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-06
+    name: schema_breaking_change
+    description: Schema 破坏性变更
+    approvers: [architect, archive_expert]
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-07
+    name: production_config
+    description: 生产环境配置与密钥引用
+    approvers: [ops_lead]
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-08
+    name: security_level_change
+    description: 密级变更
+    approvers: [branch_leader, branch_admin]
+    workflow: security_level_change
+    ai_may_draft: true
+    auto_merge: false
+
+  - id: HITL-09
+    name: open_appraisal_conclusion
+    description: 开放鉴定结论
+    approvers: [branch_leader]
+    workflow: open_appraisal
+    ai_may_draft: true
+    auto_merge: false
+
+roles:
+  group_admin: 集团管理员
+  branch_admin: 分公司管理员
+  branch_leader: 公司领导
+  dba: 数据库管理员
+  architect: 架构负责人
+  archive_expert: 档案业务专家
+  ops_lead: 运维负责人
